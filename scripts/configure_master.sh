@@ -9,7 +9,8 @@ su - puppet
 
 # Add hosts ip address to /etc/hosts
 host_ip_address=$(ifconfig ens5 | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
-echo "$host_ip_address puppet" >> /etc/hosts
+echo "Host IP address: $host_ip_address"
+sudo echo "$host_ip_address puppet" >> /etc/hosts
 
 # Enable the official Puppet Labs collection repository with these commands
 curl -O https://apt.puppetlabs.com/puppetlabs-release-pc1-xenial.deb
