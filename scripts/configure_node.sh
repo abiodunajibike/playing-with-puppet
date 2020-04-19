@@ -10,6 +10,11 @@
 # Add master ip address to /etc/hosts
 echo "------------- Adding master private IP address to /etc/hosts ------------------------"
 master_ip_address=$1
+if  [ $# -eq 0 ]
+    then
+        echo "No Master IP address specified"
+        exit 1
+fi
 echo "Master IP address: $master_ip_address"
 echo "$master_ip_address puppet" | sudo tee -a /etc/hosts
 
