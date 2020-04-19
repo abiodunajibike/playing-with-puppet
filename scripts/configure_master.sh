@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Create puppet user on master and add to sudo group
-sudo adduser puppet
-sudo usermod -aG sudo puppet
+# # Create puppet user on master and add to sudo group
+# sudo adduser puppet
+# sudo usermod -aG sudo puppet
 
-# Switch to new user
-su - puppet
+# # Switch to new user
+# su - puppet
 
 # Add hosts ip address to /etc/hosts
 host_ip_address=$(ifconfig ens5 | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
@@ -24,7 +24,8 @@ sudo apt-get install puppetserver -y
 ## By default, Puppet Server is configured to use 2 GB of RAM. 
 ## You can customize this setting based on how much free memory 
 ## the master server has and how many agent nodes it will manage.
-sed -i 's/JAVA_ARGS*/JAVA_ARGS="-Xms512m -Xmx512m -XX:MaxPermSize=256m"' /etc/default/puppetserver
+sudo sed -i 's/JAVA_ARGS=.*/JAVA_ARGS="-Xms512m -Xmx512m -XX:MaxPermSize=256m"/' /etc/default/puppetserver
+
 
 # Open the firewall
 sudo ufw allow 8140
