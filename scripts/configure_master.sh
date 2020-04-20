@@ -20,8 +20,8 @@ sudo dpkg -i puppetlabs-release-pc1-xenial.deb
 sudo apt-get update -y
 
 # Install the puppetserver package
-echo "------------- Installing puppet server ------------------------"
-sudo apt-get install puppetserver -y
+echo "------------- Installing puppet-common puppetserver ------------------------"
+sudo apt-get install -y puppet-common puppetserver
 
 # Configure memory allocation
 ## By default, Puppet Server is configured to use 2 GB of RAM. 
