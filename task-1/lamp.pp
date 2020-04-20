@@ -1,3 +1,7 @@
+### Manifest to execute on a node
+## Copy to /etc/puppetlabs/code/environments/production/manifests/lamp.pp
+## on puppet master
+
 # execute 'apt-get update'
 exec { 'apt-update':                        # exec resource named 'apt-update'
     command => '/usr/bin/apt-get update'    # command this resource will run
