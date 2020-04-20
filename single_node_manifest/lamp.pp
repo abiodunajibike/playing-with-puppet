@@ -25,8 +25,8 @@ service { 'mysql':
     ensure => running,
 }
 
-# install php5 package
-package { 'php5':
+# install php5.6 package
+package { 'php5.6':
     require => Exec['apt-update'], # require apt-update before installing
     ensure => installed,
 }
