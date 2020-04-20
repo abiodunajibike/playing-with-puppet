@@ -20,8 +20,11 @@ sudo dpkg -i puppetlabs-release-pc1-xenial.deb
 sudo apt-get update -y
 
 # Install the puppetserver package
-echo "------------- Installing puppet-common puppetserver ------------------------"
-sudo apt-get install -y puppet-common puppetserver
+echo "------------- Installing puppetserver ------------------------"
+sudo apt-get install -y puppetserver
+
+echo "------------- Installing puppet with gem ------------------------"
+sudo gem install puppet
 
 echo "------------- Installing puppet modules [apache, mysql] ------------------------"
 sudo puppet module install puppetlabs-apache puppetlabs-mysql
