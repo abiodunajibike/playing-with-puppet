@@ -1,13 +1,10 @@
 #!/bin/bash
 
-echo "------- Checking into /etc/puppetlabs/code/environments/production/modules directory ----------"
-cd /etc/puppetlabs/code/environments/production/modules
-
-echo "------- Creating directory lamp/manifests ----------"
-sudo mkdir -p lamp/manifests
+echo "------- Creating directory lamp/manifests in /etc/puppetlabs/code/environments/production/modules ----------"
+sudo mkdir -p /etc/puppetlabs/code/environments/production/modules/lamp/manifests
 
 echo "------- Copying file ./lamp/manifests/init.pp into current directory ----------"
-sudo cp -rv ./lamp/manifests/init.pp /etc/puppetlabs/code/environments/production/modules/lamp/manifests
+sudo cp -rv lamp/manifests/init.pp /etc/puppetlabs/code/environments/production/modules/lamp/manifests
 
 echo "------- Checking into /etc/puppetlabs/code/environments/production/manifests directory ----------"
 cd /etc/puppetlabs/code/environments/production/manifests
