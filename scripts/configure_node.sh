@@ -23,8 +23,10 @@ wget https://apt.puppetlabs.com/puppetlabs-release-pc1-xenial.deb
 sudo dpkg -i puppetlabs-release-pc1-xenial.deb
 sudo apt-get update -y
 
+# # Install puppet-agent, puppet-common packages
+# sudo apt-get install -y puppet-common puppet-agent
 # Install puppet-agent, puppet-common packages
-sudo apt-get install -y puppet-common puppet-agent
+sudo apt-get install -y puppet-agent
 
 # Start Puppet server
 sudo systemctl start puppet
