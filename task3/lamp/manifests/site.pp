@@ -19,5 +19,9 @@ node default {
         ensure => file,
         require => Class['apache'],                     # require apache class be used
         source => 'puppet:///modules/apache/info.php'   # specify location of file to be copied
+                                                        # this gets interpreted into 
+                                                        # /etc/puppet/modules/apache/files/info.php
+                                                        # so we must create the source file in order
+                                                        # for this resource declaration to work properly.
     }
 }
