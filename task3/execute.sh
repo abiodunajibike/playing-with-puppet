@@ -22,7 +22,6 @@ cd /etc/puppetlabs/code/environments/production/modules/apache/files
 
 echo "------- Creating info.php -------"
 sudo rm -rf info.php
-sudo touch info.pp
 
 echo "-------  Adding content to info.php ------- "
 echo "<?php  phpinfo(); ?>"  | sudo tee -a info.php
