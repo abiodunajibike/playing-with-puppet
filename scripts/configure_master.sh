@@ -21,7 +21,7 @@ sudo apt-get update -y
 
 # Install the puppetserver package
 echo "------------- Installing puppet-common puppetserver ------------------------"
-sudo apt-get install -y puppet-common puppetserver
+sudo apt-get install -y puppetserver
 
 # Configure memory allocation
 ## By default, Puppet Server is configured to use 2 GB of RAM. 
