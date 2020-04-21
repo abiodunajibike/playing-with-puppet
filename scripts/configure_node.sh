@@ -1,5 +1,8 @@
 #!/bin/bash
 
+## To apply manifest on puppet node:
+## sudo /opt/puppetlabs/bin/puppet agent --test
+
 # # Create puppet user on master and add to sudo group
 # sudo adduser node1
 # sudo usermod -aG sudo puppet
@@ -12,10 +15,10 @@ echo "------------- Adding master private IP address to /etc/hosts -------------
 master_ip_address=$1
 if  [ $# -eq 0 ]
     then
-        echo "No Master IP address specified"
+        echo "No Master private IP address specified"
         exit 1
 fi
-echo "Master IP address: $master_ip_address"
+echo "Master private IP address: $master_ip_address"
 echo "$master_ip_address puppet" | sudo tee -a /etc/hosts
 
 # Enable the official Puppet Labs collection repository with these commands
@@ -25,6 +28,7 @@ sudo apt-get update -y
 
 # # Install puppet-agent, puppet-common packages
 # sudo apt-get install -y puppet-common puppet-agent
+
 # Install puppet-agent, puppet-common packages
 sudo apt-get install -y puppet-agent
 

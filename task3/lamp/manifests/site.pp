@@ -1,7 +1,7 @@
 node default {
     class { 'apache':               # use the "apache" module
-        default_vhost => false      #  dont use the default vhost
-        default_mods => false       # dont load default mods
+        default_vhost => false,      #  dont use the default vhost
+        default_mods => false,       # dont load default mods
         mpm_module => 'prefork'     # use the "prefork" mpm_module
     }
     include apache::mod::php # include mod php
