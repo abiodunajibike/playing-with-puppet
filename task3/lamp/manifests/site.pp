@@ -14,14 +14,14 @@ node default {
         root_password => 'password',
     }
 
-    file {'templates':                                   # file resource name
-        path => '/var/www/html',               # destination path
-        ensure => directory,
-        require => Class['apache'],                     # require apache class be used
+    file {'templates':                                    # file resource name
+        path => '/var/www/html/templates',                # destination path
+        ensure => directory,                              # directory
+        require => Class['apache'],                       # require apache class be used
         source => 'puppet:///modules/apache/templates',   # specify location of file to be copied
-        recurse => true                                                # this gets interpreted into
-                                                        # /etc/puppet/modules/apache/files/info.php
-                                                        # so we must create the source file in order
-                                                        # for this resource declaration to work properly.
+        recurse => true                                   # this gets interpreted into
+                                                          # /etc/puppet/modules/apache/files/<all_files>
+                                                          # so we must create the source files in order
+                                                          # for this resource declaration to work properly.
     }
 }
