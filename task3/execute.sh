@@ -20,11 +20,8 @@ cd /etc/puppetlabs/code/environments/production/modules/apache/files
 # echo "------- Checking into directory /apache/files -------"
 # cd /apache/files
 
-echo "------- Creating info.php -------"
-sudo rm -rf info.php
-
 echo "-------  Adding content to info.php ------- "
 echo "<?php  phpinfo(); ?>"  | sudo tee -a info.php
 
-echo "-------  Showing content of info.php ------- "
-cat info.php
+echo "-------  Adding content to info.php ------- "
+echo "Hello World - Puppet"  | sudo tee -a test.php
