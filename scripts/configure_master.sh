@@ -43,6 +43,10 @@ sudo systemctl start puppetserver
 echo "------------- Enable puppet server to boot on start up ------------------------"
 sudo systemctl enable puppetserver
 
+# See puppet server status
+echo "------------- Get puppet server status ------------------------"
+sudo systemctl status puppetserver > output.txt
+
 echo "------------- List and/or sign pending certificates ------------------------"
 while true; do
     # To list all unsigned certificate requests, run the following command on the Puppet master
@@ -57,7 +61,3 @@ while true; do
         break
     fi
 done
-
-# See puppet server status
-echo "------------- Get puppet server status ------------------------"
-sudo systemctl status puppetserver
