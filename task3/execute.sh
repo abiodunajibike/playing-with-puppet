@@ -23,8 +23,11 @@ cd /etc/puppetlabs/code/environments/production/modules/apache/files
 echo "------- Creating directory templates -------"
 sudo mkdir -p templates && cd templates
 
-echo "-------  Adding content to info.php ------- "
-echo "<?php  phpinfo(); ?>"  | sudo tee -a info.php
+echo "------- Copying $proj_directory/task3/files content -------"
+sudo cp -rv $proj_directory/task3/files/* .
 
-echo "-------  Adding content to info.php ------- "
-echo "Hello World - Puppet"  | sudo tee -a test.php
+# echo "-------  Adding content to info.php ------- "
+# echo "<?php  phpinfo(); ?>"  | sudo tee -a info.php
+
+# echo "-------  Adding content to info.php ------- "
+# echo "Hello World - Puppet"  | sudo tee -a test.php
