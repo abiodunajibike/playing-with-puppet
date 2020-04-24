@@ -30,6 +30,10 @@ sudo apt-get install -y puppetserver
 echo "------------- Updating memory allocation for puppet server ------------------------"
 sudo sed -i 's/JAVA_ARGS=.*/JAVA_ARGS="-Xms512m -Xmx512m -XX:MaxPermSize=256m"/' /etc/default/puppetserver
 
+# Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
+echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
+sudo cp -rv /home/ubuntu/playing-with-puppet/task5/master/puppet.conf \
+    /etc/puppetlabs/puppet/puppet.conf
 
 # Open the firewall
 echo "------------- Opening port 8140 ------------------------"
@@ -37,7 +41,7 @@ sudo ufw allow 8140
 
 # Start Puppet server
 echo "------------- Starting puppet server ------------------------"
-sudo systemctl start puppetserver --master-code-dir /home/ubuntu/playing-with-puppet/task5
+sudo systemctl start puppetserver
 
 # Configure it to start at boot
 echo "------------- Enable puppet server to boot on start up ------------------------"

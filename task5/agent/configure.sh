@@ -38,6 +38,11 @@ sudo apt-get update -y
 # Install puppet-agent, puppet-common packages
 sudo apt-get install -y puppet-agent
 
+# Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
+echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
+sudo cp -rv /home/ubuntu/playing-with-puppet/task5/agent/puppet.conf \
+    /etc/puppetlabs/puppet/puppet.conf
+
 # Start Puppet server
 sudo systemctl start puppet
 
