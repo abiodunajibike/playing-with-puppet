@@ -32,7 +32,9 @@ sudo sed -i 's/JAVA_ARGS=.*/JAVA_ARGS="-Xms512m -Xmx512m -XX:MaxPermSize=256m"/'
 
 # Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
 echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
-sudo cp -rv /home/ubuntu/playing-with-puppet/task5/master/puppet.conf \
+echo "HOME directory is: $HOME"
+
+sudo cp -rv $HOME/playing-with-puppet/task5/master/puppet.conf \
     /etc/puppetlabs/puppet/puppet.conf
 
 # Open the firewall

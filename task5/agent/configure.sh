@@ -39,8 +39,10 @@ sudo apt-get update -y
 sudo apt-get install -y puppet-agent
 
 # Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
+echo "HOME directory is: $HOME"
+
 echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
-sudo cp -rv /home/ubuntu/playing-with-puppet/task5/agent/puppet.conf \
+sudo cp -rv $HOME/playing-with-puppet/task5/agent/puppet.conf \
     /etc/puppetlabs/puppet/puppet.conf
 
 # Start Puppet server
