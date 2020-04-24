@@ -37,7 +37,7 @@ sudo ufw allow 8140
 
 # Start Puppet server
 echo "------------- Starting puppet server ------------------------"
-sudo systemctl start puppetserver
+sudo systemctl start puppetserver --master-code-dir /home/ubuntu/playing-with-puppet/task5
 
 # Configure it to start at boot
 echo "------------- Enable puppet server to boot on start up ------------------------"
