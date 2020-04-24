@@ -46,6 +46,7 @@ sudo systemctl enable puppetserver
 # See puppet server status
 echo "------------- Get puppet server status ------------------------"
 sudo systemctl status puppetserver > output.txt
+cat output.txt
 
 echo "------------- List and/or sign pending certificates ------------------------"
 while true; do
