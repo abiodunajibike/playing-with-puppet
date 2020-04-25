@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## Get master config
+# /opt/puppetlabs/bin/puppet config print
 # # Create puppet user on master and add to sudo group
 # sudo adduser puppet
 # sudo usermod -aG sudo puppet
@@ -30,12 +32,28 @@ sudo apt-get install -y puppetserver
 echo "------------- Updating memory allocation for puppet server ------------------------"
 sudo sed -i 's/JAVA_ARGS=.*/JAVA_ARGS="-Xms512m -Xmx512m -XX:MaxPermSize=256m"/' /etc/default/puppetserver
 
+# # Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
+# echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
+# echo "HOME directory is: $HOME"
+
+# sudo cp -rv $HOME/playing-with-puppet/task5/master/puppet.conf \
+#     /etc/puppetlabs/puppet/puppet.conf
+
 # Copy puppet.conf to /etc/puppetlabs/puppet/puppet.conf
-echo "------------- Copying puppet.conf to /etc/puppetlabs/puppet/puppet.conf ------------------------"
+echo "------------- Copying puppet.conf to /home/cloud_user/.puppetlabs/etc/puppet/puppet.conf ------------------------"
 echo "HOME directory is: $HOME"
+mkdir /home/cloud_user/.puppetlabs/etc/puppet/
 
 sudo cp -rv $HOME/playing-with-puppet/task5/master/puppet.conf \
-    /etc/puppetlabs/puppet/puppet.conf
+    /home/cloud_user/.puppetlabs/etc/puppet/puppet.conf
+
+# mkdir /home/cloud_user/.puppetlabs/etc/puppet/
+# touch /home/cloud_user/.puppetlabs/etc/puppet/puppet.conf
+# opt/puppetlabs/bin/puppet config set environment development
+# /opt/puppetlabs/bin/puppet config set codedir /home/cloud_user/playing-with-puppet/task5
+
+/opt/puppetlabs/bin/puppet config print
+# sudo cat /var/log/puppetlabs/puppetserver/puppetserver.log
 
 # Open the firewall
 echo "------------- Opening port 8140 ------------------------"
@@ -68,3 +86,6 @@ while true; do
         break
     fi
 done
+
+echo "------------- Listing all puppet nodes ------------------------"
+sudo /opt/puppetlabs/bin/puppet cert list --all
