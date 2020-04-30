@@ -82,54 +82,7 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets": {
-            "full_install": [ "install_and_enable_cfn_hup" ],
-            "default": ["updateAPT", "installPackages", "configurePuppet", "setPuppetMemory", "startPuppet"]
-          },
-          "install_and_enable_cfn_hup" : {
-            "files" : {
-              "/etc/cfn/cfn-hup.conf" : {
-                "content" : { "Fn::Join" : ["", [
-                  "[main]\n",
-                  "stack=", { "Ref" : "AWS::StackId" }, "\n",
-                  "region=", { "Ref" : "AWS::Region" }, "\n"
-                ]]},
-                "mode"    : "000400",
-                "owner"   : "root",
-                "group"   : "root"
-              },
-              "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
-                "content": { "Fn::Join" : ["", [
-                  "[cfn-auto-reloader-hook]\n",
-                  "triggers=post.update\n",
-                  "path=Resources.PuppetMasterInstance.Metadata.AWS::CloudFormation::Init\n",
-                  "action=/opt/aws/bin/cfn-init -v ",
-                  "         --stack ", { "Ref" : "AWS::StackName" },
-                  "         --configsets full_install ",
-                  "         --resource PuppetMasterInstance ",
-                  "         --region ", { "Ref" : "AWS::Region" }, "\n",
-                  "runas=root\n"
-                ]]}
-              },
-              "/lib/systemd/system/cfn-hup.service": {
-                  "content": { "Fn::Join" : ["", [
-                  "[Unit]\n",
-                  "Description=cfn-hup daemon\n\n",
-                  "[Service]\n",
-                  "Type=simple\n",
-                  "ExecStart=/opt/aws/bin/cfn-hup\n", 
-                  "Restart=always\n\n",
-                  "[Install]\n",
-                  "WantedBy=multi-user.target"]]}
-              }
-            },  
-            "commands" : {
-              "01enable_cfn_hup" : {
-                  "command" : "systemctl enable cfn-hup.service"
-              },
-              "02start_cfn_hup" : {
-                  "command" : "systemctl start cfn-hup.service"
-              }
-            }
+            "default": ["updateAPT", "installPackages", "configurePuppet", "setHostname"]
           },
           "updateAPT": {
             "commands": {
@@ -147,7 +100,7 @@
           "installPackages": {
             "packages" : {
               "apt" : {
-                "puppetserver" : [],
+                "puppetmaster" : [],
                 "gcc" : [],
                 "make" : [],
                 "rubygems" : []
@@ -156,6 +109,26 @@
                 "json" : []
               }
             },
+          },
+          "configurePuppetServer": {
+            "files": {
+              "/etc/puppet/puppet.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                "[main] \n",
+                " vardir=/opt/puppetlabs/server/data/puppetserver\n",
+                " logdir=/var/log/puppetlabs/puppetserver \n",
+                " rundir=/var/run/puppetlabs/puppetserver \n",
+                " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
+                " ssldir=$vardir/ssl \n",
+                " pluginsync=true \n",
+                "[agent] \n",
+                " classfile=$vardir/classes.txt\n",
+                " localconfig=$vardir/localconfig\n"]] },
+                "mode" : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+            }
           },
           "configurePuppet" : {
             "sources" : {
@@ -177,22 +150,6 @@
               "/etc/puppet/fileserver.conf" : {
                 "content" : "[modules] \n allow *.internal \n",
                 "mode" : "100644",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/etc/puppet/puppet.conf" : {
-                "content" : { "Fn::Join" : ["", [
-                "[main] \n",
-                " vardir=/opt/puppetlabs/server/data/puppetserver\n",
-                " logdir=/var/log/puppetlabs/puppetserver \n",
-                " rundir=/var/run/puppetlabs/puppetserver \n",
-                " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
-                " ssldir=$vardir/ssl \n",
-                " pluginsync=true \n",
-                "[agent] \n",
-                " classfile=$vardir/classes.txt\n",
-                " localconfig=$vardir/localconfig\n"]] },
-                "mode" : "000644",
                 "owner" : "root",
                 "group" : "root"
               },
@@ -232,19 +189,18 @@
           },
           "setPuppetMemory": {
             "commands": {
-              "set-puppetserver-memory": {
+              "set-puppet-memory": {
                 "command": ["sed", "-i", "s/JAVA_ARGS=.*/JAVA_ARGS='-Xms512m -Xmx512m -XX:MaxPermSize=256m'/", "/etc/default/puppetserver"]
               }
             }
           },
-          "startPuppet": {
-            "01_enable_puppetserver" : {
-              "command" : "systemctl enable puppetserver.service"
-            },
-            "02_start_puppetserver" : {
-              "command" : "systemctl start puppetserver.service"
+          "setHostname": {
+            "commands": {
+              "set-hostname": {
+                "command": ["echo", "$(curl http://169.254.169.254/latest/meta-data/local-ipv4)", "puppet | tee -a /etc/hosts"]
+              }
             }
-          }
+          },
         }
       },
       "Properties" : {
@@ -266,13 +222,6 @@
             "mkdir -p /opt/aws/bin\n",
             "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
             "easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n",
-            "/opt/aws/bin/cfn-init -v ",
-            " --region ", { "Ref" : "AWS::Region" },
-            " --stack ", { "Ref" : "AWS::StackName" },
-            " --resource PuppetMasterInstance ",
-            " --configsets full_install ",
-            " --access-key ", { "Ref" : "CFNKeys" },
-            " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n",
 
             "/opt/aws/bin/cfn-init -v ",
             " --region ", { "Ref" : "AWS::Region" },
