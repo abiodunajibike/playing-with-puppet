@@ -38,11 +38,20 @@
       "Default" : "https://s3.amazonaws.com/cloudformation-examples/wordpress-puppet-config.tar.gz",
       "Description" : "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetMaster content",
       "Type" : "String"
-    },
-    "UbuntuAMIId": {
-      "Type": "String",
-      "Default": "ami-0a4fbfab82b4aee91"
     }
+  },
+
+  "Mappings": {
+    "AWSRegionAMIEC2" : {
+      "us-east-1"        : {"Ubuntu16" : "ami-d15a75c7"},
+      "us-west-2"        : {"Ubuntu16" : "ami-746aba14"},
+      "us-west-1"        : {"Ubuntu16" : "ami-a9a8e4c9"},
+      "eu-west-1"        : {"Ubuntu16" : "ami-844e0bf7"},
+      "eu-central-1"     : {"Ubuntu16" : "ami-a9a557c6"},
+      "ap-northeast-1"   : {"Ubuntu16" : "ami-d82efcb9"},
+      "ap-southeast-1"   : {"Ubuntu16" : "ami-d554f1b6"},
+      "ap-southeast-2"   : {"Ubuntu16" : "ami-0bc1f168"}
+      }
   },
 
   "Resources" : {
@@ -73,7 +82,54 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets": {
-            "default": ["updateAPT", "installPackages", "configurePuppet", "startPuppet"]
+            "full_install": [ "install_and_enable_cfn_hup" ],
+            "default": ["updateAPT", "installPackages", "configurePuppet", "setPuppetMemory", "startPuppet"]
+          },
+          "install_and_enable_cfn_hup" : {
+            "files" : {
+              "/etc/cfn/cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n"
+                ]]},
+                "mode"    : "000400",
+                "owner"   : "root",
+                "group"   : "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+                "content": { "Fn::Join" : ["", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.PuppetMasterInstance.Metadata.AWS::CloudFormation::Init\n",
+                  "action=/opt/aws/bin/cfn-init -v ",
+                  "         --stack ", { "Ref" : "AWS::StackName" },
+                  "         --configsets full_install ",
+                  "         --resource PuppetMasterInstance ",
+                  "         --region ", { "Ref" : "AWS::Region" }, "\n",
+                  "runas=root\n"
+                ]]}
+              },
+              "/lib/systemd/system/cfn-hup.service": {
+                  "content": { "Fn::Join" : ["", [
+                  "[Unit]\n",
+                  "Description=cfn-hup daemon\n\n",
+                  "[Service]\n",
+                  "Type=simple\n",
+                  "ExecStart=/opt/aws/bin/cfn-hup\n", 
+                  "Restart=always\n\n",
+                  "[Install]\n",
+                  "WantedBy=multi-user.target"]]}
+              }
+            },  
+            "commands" : {
+              "01enable_cfn_hup" : {
+                  "command" : "systemctl enable cfn-hup.service"
+              },
+              "02start_cfn_hup" : {
+                  "command" : "systemctl start cfn-hup.service"
+              }
+            }
           },
           "updateAPT": {
             "commands": {
@@ -174,14 +230,19 @@
               }
             },
           },
-          "startPuppet": {
-            "services" : {
-              "sysvinit" : {
-                "puppetserver" : {
-                  "enabled" : "true",
-                  "ensureRunning" : "true"
-                }
+          "setPuppetMemory": {
+            "commands": {
+              "set-puppetserver-memory": {
+                "command": ["sed", "-i", "s/JAVA_ARGS=.*/JAVA_ARGS='-Xms512m -Xmx512m -XX:MaxPermSize=256m'/", "/etc/default/puppetserver"]
               }
+            }
+          },
+          "startPuppet": {
+            "01_enable_puppetserver" : {
+              "command" : "systemctl enable puppetserver.service"
+            },
+            "02_start_puppetserver" : {
+              "command" : "systemctl start puppetserver.service"
             }
           }
         }
@@ -189,7 +250,7 @@
       "Properties" : {
         "InstanceType" : { "Ref" : "InstanceType" },
         "SecurityGroups" : [ { "Ref" : "PuppetGroup" } ],
-        "ImageId" : { "Ref" : "UbuntuAMIId" },
+        "ImageId" : {"Fn::FindInMap": [ "AWSRegionAMIEC2", { "Ref": "AWS::Region" }, "Ubuntu16"]},
         "KeyName" : { "Ref" : "KeyName" },
         "Tags": [
           {
@@ -199,12 +260,25 @@
         ],
         "UserData" : { 
           "Fn::Base64" : { "Fn::Join" : ["", [
-            "#!/bin/bash\n",
-            "apt-get update\n",
-            "apt-get -y install python-pip\n",
-            "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-            "cfn-init --region ", { "Ref" : "AWS::Region" },
-            " -s ", { "Ref" : "AWS::StackName" }, " -r PuppetMasterInstance ",
+            "#!/bin/bash -xe\n",
+            "apt-get update -y \n",
+            "apt-get -y install python-setuptools\n",
+            "mkdir -p /opt/aws/bin\n",
+            "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+            "easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n",
+            "/opt/aws/bin/cfn-init -v ",
+            " --region ", { "Ref" : "AWS::Region" },
+            " --stack ", { "Ref" : "AWS::StackName" },
+            " --resource PuppetMasterInstance ",
+            " --configsets full_install ",
+            " --access-key ", { "Ref" : "CFNKeys" },
+            " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n",
+
+            "/opt/aws/bin/cfn-init -v ",
+            " --region ", { "Ref" : "AWS::Region" },
+            " --stack ", { "Ref" : "AWS::StackName" },
+            " --resource PuppetMasterInstance ",
+            " --configsets default ",
             " --access-key ", { "Ref" : "CFNKeys" },
             " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n"
             ]]}
