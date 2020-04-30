@@ -20,8 +20,7 @@
         "m2.2xlarge",
         "m2.4xlarge",
         "c1.medium",
-        "c1.xlarge",
-        "cc1.4xlarge"
+        "c1.xlarge"
       ],
       "ConstraintDescription" : "must contain only alphanumeric characters."
     },
@@ -40,9 +39,9 @@
       "Description" : "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetMaster content",
       "Type" : "String"
     },
-    "LatestAmiId" : {
-      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
-      "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+    "UbuntuAMIId": {
+      "Type": "String",
+      "Default": "ami-0a4fbfab82b4aee91"
     }
   },
 
@@ -73,12 +72,26 @@
       "Type" : "AWS::EC2::Instance",
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
-          "config" : {
+          "configSets": {
+            "default": ["updateAPT", "installPackages", "configurePuppet", "startPuppet"]
+          },
+          "updateAPT": {
+            "commands": {
+              "1-download-file": {
+                "command": ["wget", "https://apt.puppetlabs.com/puppetlabs-release-pc1-xenial.deb", "-O", "/var/tmp/puppetlabs-release-pc1-xenial.deb"]
+              },
+              "2-enable-official-puppetlabs": {
+                "command": ["dpkg", "-i", "/var/tmp/puppetlabs-release-pc1-xenial.deb"]
+              },
+              "3-apt-get-update": {
+                "command": ["apt-get", "update", "-y"]
+              }
+            }
+          },
+          "installPackages": {
             "packages" : {
-              "yum" : {
-                "puppet" : [],
+              "apt" : {
                 "puppetserver" : [],
-                "ruby-devel" : [],
                 "gcc" : [],
                 "make" : [],
                 "rubygems" : []
@@ -87,6 +100,8 @@
                 "json" : []
               }
             },
+          },
+          "configurePuppet" : {
             "sources" : {
               "/etc/puppet" : { "Ref" : "ContentLocation" }
             },
@@ -101,19 +116,21 @@
                 "content" : "*.internal\n",
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               },
               "/etc/puppet/fileserver.conf" : {
                 "content" : "[modules] \n allow *.internal \n",
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               },
               "/etc/puppet/puppet.conf" : {
                 "content" : { "Fn::Join" : ["", [
                 "[main] \n",
-                " logdir=/var/log/puppet \n",
-                " rundir=/var/run/puppet \n",
+                " vardir=/opt/puppetlabs/server/data/puppetserver\n",
+                " logdir=/var/log/puppetlabs/puppetserver \n",
+                " rundir=/var/run/puppetlabs/puppetserver \n",
+                " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
                 " ssldir=$vardir/ssl \n",
                 " pluginsync=true \n",
                 "[agent] \n",
@@ -127,13 +144,13 @@
                 "content" : "class cfn {}",
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               },
               "/etc/puppet/modules/cfn/lib/facter/cfn.rb" : {
                 "source" : "https://s3.amazonaws.com/cloudformation-examples/cfn-facter-plugin.rb",
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               },
               "/etc/puppet/manifests/nodes.pp" : {
                 "content" : {"Fn::Join" : ["", [
@@ -147,18 +164,20 @@
                 "}\n"]]},
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               },
               "/etc/puppet/manifests/site.pp" : {
                 "content" : "import\"nodes\"\n",
                 "mode" : "100644",
                 "owner" : "root",
-                "group" : "wheel"
+                "group" : "root"
               }
             },
+          },
+          "startPuppet": {
             "services" : {
               "sysvinit" : {
-                "puppetmaster" : {
+                "puppetserver" : {
                   "enabled" : "true",
                   "ensureRunning" : "true"
                 }
@@ -170,17 +189,34 @@
       "Properties" : {
         "InstanceType" : { "Ref" : "InstanceType" },
         "SecurityGroups" : [ { "Ref" : "PuppetGroup" } ],
-        "ImageId" : { "Ref": "LatestAmiId" },
+        "ImageId" : { "Ref" : "UbuntuAMIId" },
         "KeyName" : { "Ref" : "KeyName" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Puppet Master"
+          }
+        ],
         "UserData" : { 
           "Fn::Base64" : { "Fn::Join" : ["", [
-          "#!/bin/bash\n",
-            "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" },
-            "      -s ", { "Ref" : "AWS::StackName" }, " -r PuppetMasterInstance ",
-            "      --access-key ", { "Ref" : "CFNKeys" },
-            "      --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n"
+            "#!/bin/bash\n",
+            "apt-get update\n",
+            "apt-get -y install python-pip\n",
+            "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+            "cfn-init --region ", { "Ref" : "AWS::Region" },
+            " -s ", { "Ref" : "AWS::StackName" }, " -r PuppetMasterInstance ",
+            " --access-key ", { "Ref" : "CFNKeys" },
+            " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n"
             ]]}
-        }
+        },
+        "BlockDeviceMappings": [
+          {
+              "DeviceName": "/dev/sda1",
+              "Ebs": {
+                  "VolumeSize": "100"
+              }
+          }
+        ]
       }
     },
     "EC2SecurityGroup" : {
@@ -207,7 +243,7 @@
       "DependsOn" : "PuppetMasterInstance",
       "Properties" : {
         "Handle" : { "Ref" : "PuppetMasterWaitHandle" },
-        "Timeout" : "600"
+        "Timeout" : "6000"
       }
     }
   },
