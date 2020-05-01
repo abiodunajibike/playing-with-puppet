@@ -111,6 +111,25 @@
               }
             },
           },
+          "backup": {
+            "/etc/puppet/puppet.conf" : {
+              "content" : {
+                "Fn::Join" : ["", [
+                  "[main] \n",
+                  " logdir=/var/log/puppet\n",
+                  " rundir=/var/run/puppet\n",
+                  " ssldir=$vardir/ssl\n",
+                  " pluginsync=true \n",
+                  "[agent] \n",
+                  " classfile=$vardir/classes.txt\n",
+                  " localconfig=$vardir/localconfig\n"]
+                ]
+              },
+              "mode" : "000644",
+              "owner" : "root",
+              "group" : "root"
+            },
+          },
           "configurePuppetMaster" : {
             "sources" : {
               "/etc/puppet" : { "Ref" : "ContentLocation" }
@@ -125,23 +144,6 @@
               "/etc/puppet/autosign.conf" : {
                 "content" : "*.internal\n",
                 "mode" : "100644",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/etc/puppet/puppet.conf" : {
-                "content" : {
-                  "Fn::Join" : ["", [
-                    "[main] \n",
-                    " logdir=/var/log/puppet\n",
-                    " rundir=/var/run/puppet\n",
-                    " ssldir=$vardir/ssl\n",
-                    " pluginsync=true \n",
-                    "[agent] \n",
-                    " classfile=$vardir/classes.txt\n",
-                    " localconfig=$vardir/localconfig\n"]
-                  ]
-                },
-                "mode" : "000644",
                 "owner" : "root",
                 "group" : "root"
               },

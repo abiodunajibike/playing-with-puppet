@@ -16,6 +16,11 @@
             "Type": "String",
             "Default": "{{resolve:ssm:PuppetClientSecurityGroup:1}}",
         },
+        "PuppetMasterDNSName": {
+            "Description" : "The PuppetMaster DNSName",
+            "Type": "String",
+            "Default": "{{resolve:ssm:PuppetMasterDNSName:1}}",
+        },
         "PuppetMasterPrivateIp": {
             "Description" : "The PuppetMaster PrivateIp",
             "Type": "String",
@@ -139,10 +144,13 @@
                                         " rundir=/var/run/puppet\n",
                                         " ssldir=$vardir/ssl\n",
                                         " pluginsync=true\n",
+                                        " server=", { "Ref" : "PuppetMasterDNSName" },"\n",
+                                        " runinterval=2m\n",
+                                        "[master]\n",
+                                        " dns_alt_names=puppet\n",
                                         "[agent]\n",
                                         " classfile=$vardir/classes.txt\n",
-                                        " localconfig=$vardir/localconfig\n",
-                                        " server=", { "Ref" : "PuppetMasterPrivateIp" },"\n"
+                                        " localconfig=$vardir/localconfig\n"
                                     ]]
                                 },
                                 "mode" : "000644",
