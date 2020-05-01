@@ -10,9 +10,10 @@
     "InstanceType" : {
       "Description" : "EC2 instance type for PuppetMaster",
       "Type" : "String",
-      "Default" : "m1.small",
+      "Default" : "t2.medium",
       "AllowedValues" : [ 
         "t1.micro",
+        "t2.medium",
         "m1.small",
         "m1.large",
         "m1.xlarge",
@@ -51,7 +52,7 @@
       "ap-northeast-1"   : {"Ubuntu16" : "ami-d82efcb9"},
       "ap-southeast-1"   : {"Ubuntu16" : "ami-d554f1b6"},
       "ap-southeast-2"   : {"Ubuntu16" : "ami-0bc1f168"}
-      }
+    }
   },
 
   "Resources" : {
@@ -82,7 +83,7 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets": {
-            "default": ["updateAPT", "installPackages", "configurePuppet", "setHostname"]
+            "default": [ "installPackages", "configurePuppetMaster", "setPuppetMasterHost" ]
           },
           "updateAPT": {
             "commands": {
@@ -110,27 +111,7 @@
               }
             },
           },
-          "configurePuppetServer": {
-            "files": {
-              "/etc/puppet/puppet.conf" : {
-                "content" : { "Fn::Join" : ["", [
-                "[main] \n",
-                " vardir=/opt/puppetlabs/server/data/puppetserver\n",
-                " logdir=/var/log/puppetlabs/puppetserver \n",
-                " rundir=/var/run/puppetlabs/puppetserver \n",
-                " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
-                " ssldir=$vardir/ssl \n",
-                " pluginsync=true \n",
-                "[agent] \n",
-                " classfile=$vardir/classes.txt\n",
-                " localconfig=$vardir/localconfig\n"]] },
-                "mode" : "000644",
-                "owner" : "root",
-                "group" : "root"
-              },
-            }
-          },
-          "configurePuppet" : {
+          "configurePuppetMaster" : {
             "sources" : {
               "/etc/puppet" : { "Ref" : "ContentLocation" }
             },
@@ -144,6 +125,23 @@
               "/etc/puppet/autosign.conf" : {
                 "content" : "*.internal\n",
                 "mode" : "100644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/puppet/puppet.conf" : {
+                "content" : {
+                  "Fn::Join" : ["", [
+                    "[main] \n",
+                    " logdir=/var/log/puppet\n",
+                    " rundir=/var/run/puppet\n",
+                    " ssldir=$vardir/ssl\n",
+                    " pluginsync=true \n",
+                    "[agent] \n",
+                    " classfile=$vardir/classes.txt\n",
+                    " localconfig=$vardir/localconfig\n"]
+                  ]
+                },
+                "mode" : "000644",
                 "owner" : "root",
                 "group" : "root"
               },
@@ -187,20 +185,19 @@
               }
             },
           },
-          "setPuppetMemory": {
+          "setPuppetMasterHost": {
             "commands": {
-              "set-puppet-memory": {
-                "command": ["sed", "-i", "s/JAVA_ARGS=.*/JAVA_ARGS='-Xms512m -Xmx512m -XX:MaxPermSize=256m'/", "/etc/default/puppetserver"]
+              "1-set-system-hostname": {
+                "command": { "Fn::Join" : [ " ", ["hostnamectl", "set-hostname", "puppet-master.test.org"] ] }
+              },
+              "2-set-puppet-ip": {
+                  "command": { "Fn::Join" : [ " ", ["echo", "`curl http://169.254.169.254/latest/meta-data/local-ipv4`", "puppet", "| sudo tee -a /etc/hosts"] ] }
+              },
+              "3-set-hostname": {
+                "command": { "Fn::Join" : [ " ", ["echo", "`curl http://169.254.169.254/latest/meta-data/local-ipv4`", "puppet-master.test.org", "| sudo tee -a /etc/hosts"] ] }
               }
             }
-          },
-          "setHostname": {
-            "commands": {
-              "set-hostname": {
-                "command": ["echo", "$(curl http://169.254.169.254/latest/meta-data/local-ipv4)", "puppet | tee -a /etc/hosts"]
-              }
-            }
-          },
+        },
         }
       },
       "Properties" : {
@@ -215,28 +212,31 @@
           }
         ],
         "UserData" : { 
-          "Fn::Base64" : { "Fn::Join" : ["", [
-            "#!/bin/bash -xe\n",
-            "apt-get update -y \n",
-            "apt-get -y install python-setuptools\n",
-            "mkdir -p /opt/aws/bin\n",
-            "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-            "easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n",
+          "Fn::Base64" : {
+            "Fn::Join" : ["", [
+              "#!/bin/bash -xe\n",
+              "apt-get update -y \n",
+              "apt-get -y install python-setuptools\n",
+              "mkdir -p /opt/aws/bin\n",
+              "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+              "easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n",
 
-            "/opt/aws/bin/cfn-init -v ",
-            " --region ", { "Ref" : "AWS::Region" },
-            " --stack ", { "Ref" : "AWS::StackName" },
-            " --resource PuppetMasterInstance ",
-            " --configsets default ",
-            " --access-key ", { "Ref" : "CFNKeys" },
-            " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n"
-            ]]}
+              "/opt/aws/bin/cfn-init -v ",
+              " --region ", { "Ref" : "AWS::Region" },
+              " --stack ", { "Ref" : "AWS::StackName" },
+              " --resource PuppetMasterInstance ",
+              " --configsets default ",
+              " --access-key ", { "Ref" : "CFNKeys" },
+              " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n",
+              "/opt/aws/bin/cfn-signal  -e $? '", { "Ref" : "PuppetMasterWaitHandle" }, "'\n"]
+            ]
+          }
         },
         "BlockDeviceMappings": [
           {
               "DeviceName": "/dev/sda1",
               "Ebs": {
-                  "VolumeSize": "100"
+                  "VolumeSize": "10"
               }
           }
         ]
@@ -254,6 +254,7 @@
         "GroupDescription" : "Group for puppet communication",
         "SecurityGroupIngress" : [
           { "IpProtocol" : "tcp", "FromPort" : "8140", "ToPort" : "8140", "SourceSecurityGroupName" : { "Ref" : "EC2SecurityGroup" }},
+          { "IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "SourceSecurityGroupName" : { "Ref" : "EC2SecurityGroup" }},
           { "IpProtocol" : "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" }
         ]
       }
@@ -266,12 +267,53 @@
       "DependsOn" : "PuppetMasterInstance",
       "Properties" : {
         "Handle" : { "Ref" : "PuppetMasterWaitHandle" },
-        "Timeout" : "6000"
+        "Timeout" : "600"
+      }
+    },
+
+    "PuppetMasterKeyNameParameter": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+          "Name": "PuppetMasterKeyName",
+          "Type": "String",
+          "Value": { "Ref" : "KeyName" },
+          "Description": "SSM Parameter for PuppetMasterKeyName"
+      }
+    },
+    "PuppetMasterPrivateIpParameter": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+          "Name": "PuppetMasterPrivateIp",
+          "Type": "String",
+          "Value": { "Fn::GetAtt" : [ "PuppetMasterInstance", "PrivateIp" ] },
+          "Description": "SSM Parameter for PuppetMasterPrivateIp"
+      }
+    },
+    "PuppetMasterDNSNameParameter": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+          "Name": "PuppetMasterDNSName",
+          "Type": "String",
+          "Value": { "Fn::GetAtt" : [ "PuppetMasterInstance", "PrivateDnsName" ] },
+          "Description": "SSM Parameter for PuppetMasterDNSName"
+      }
+    },
+    "PuppetClientSecurityGroupParameter": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+          "Name": "PuppetClientSecurityGroup",
+          "Type": "String",
+          "Value": { "Ref" : "EC2SecurityGroup" },
+          "Description": "SSM Parameter for PuppetClientSecurityGroup"
       }
     }
   },
 
   "Outputs" : {
+    "PuppetMasterKeyName" : {
+      "Value" : { "Ref" : "KeyName" },
+      "Description" : "Key Name of PuppetMaster"
+    },
     "PuppetMasterDNSName" : {
       "Value" : { "Fn::GetAtt" : [ "PuppetMasterInstance", "PrivateDnsName" ] },
       "Description" : "DNS Name of PuppetMaster"
