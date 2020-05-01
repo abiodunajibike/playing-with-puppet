@@ -21,11 +21,6 @@
             "Type": "String",
             "Default": "{{resolve:ssm:PuppetMasterPrivateIp:1}}",
         },
-        "PuppetMasterDNSName": {
-            "Description" : "The PuppetMaster DNS name",
-            "Type": "String",
-            "Default": "{{resolve:ssm:PuppetMasterDNSName:1}}",
-        },
         "InstanceType": {
             "Default": "t1.micro",
             "Description" : "Type of EC2 instance for web server",
@@ -169,13 +164,6 @@
                             }
                         }
                     },
-                    "setPuppetMasterHostBackup": {
-                        "commands": {
-                            "1-update-etc-hosts": {
-                                "command": ["echo puppet `hostname -I` >> /etc/hosts"]
-                            }
-                        }
-                    },
                     "startPuppetAgent": {
                         "commands": {
                             "1-enable-agent": {
@@ -183,16 +171,6 @@
                             }
                         }
                     },
-                    "startPuppetAgentBackup": {
-                        "commands": {
-                            "1-start-agent": {
-                                "command": ["puppet", "agent", "--no-daemonize", "--onetime", "--verbose"]
-                            },
-                            "2-enable-agent": {
-                                "command": ["puppet", "agent", "--enable"]
-                            }
-                        }
-                    }
                 }
             },
             "Properties": {
