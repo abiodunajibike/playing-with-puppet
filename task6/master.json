@@ -180,7 +180,7 @@
                 "group" : "root"
               },
               "/etc/puppet/manifests/site.pp" : {
-                "content" : "import\"nodes\"\n",
+                "content" : "import \"nodes\"\n",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"

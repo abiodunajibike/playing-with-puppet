@@ -145,7 +145,6 @@
                                         " ssldir=$vardir/ssl\n",
                                         " pluginsync=true\n",
                                         " server=", { "Ref" : "PuppetMasterDNSName" },"\n",
-                                        " runinterval=2m\n",
                                         "[master]\n",
                                         " dns_alt_names=puppet\n",
                                         "[agent]\n",
