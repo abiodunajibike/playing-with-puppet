@@ -83,7 +83,7 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets": {
-            "default": [ "enablePuppetLabRepo", "installPackages", "configurePuppetServer", "setPuppetServerHost", "startPuppetServer" ]
+            "default": [ "enablePuppetLabRepo", "installPackages", "configurePuppetServer", "setPuppetServerHost", "reducePuppetServerMemory", "startPuppetServer" ]
           },
           "enablePuppetLabRepo": {
             "commands": {
@@ -113,7 +113,7 @@
           },
           "configurePuppetServer" : {
             "sources" : {
-              "/etc/puppet" : { "Ref" : "ContentLocation" }
+              "/etc/puppetlabs/puppet" : { "Ref" : "ContentLocation" }
             },
             "files" : {
               "/etc/yum.repos.d/epel.repo" : {
@@ -122,19 +122,19 @@
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/autosign.conf" : {
+              "/etc/puppetlabs/puppet/autosign.conf" : {
                 "content" : "*.internal\n",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/fileserver.conf" : {
+              "/etc/puppetlabs/puppet/fileserver.conf" : {
                 "content" : "[modules] \n allow *.internal \n",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/puppet.conf" : {
+              "/etc/puppetlabs/puppet/puppet.conf" : {
                   "content" : { "Fn::Join" : ["", [
                   "[main] \n",
                   " vardir=/opt/puppetlabs/server/data/puppetserver\n",
@@ -142,7 +142,6 @@
                   " rundir=/var/run/puppetlabs/puppetserver \n",
                   " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
                   " ssldir=$vardir/ssl \n",
-                  " pluginsync=true \n",
                   "[agent] \n",
                   " classfile=$vardir/classes.txt\n",
                   " localconfig=$vardir/localconfig\n"]] },
@@ -150,19 +149,19 @@
                   "owner" : "root",
                   "group" : "root"
                 },
-              "/etc/puppet/modules/cfn/manifests/init.pp" : {
+              "/etc/puppetlabs/puppet/modules/cfn/manifests/init.pp" : {
                 "content" : "class cfn {}",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/modules/cfn/lib/facter/cfn.rb" : {
+              "/etc/puppetlabs/puppet/modules/cfn/lib/facter/cfn.rb" : {
                 "source" : "https://s3.amazonaws.com/cloudformation-examples/cfn-facter-plugin.rb",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/manifests/nodes.pp" : {
+              "/etc/puppetlabs/puppet/manifests/nodes.pp" : {
                 "content" : {"Fn::Join" : ["", [
                 "node basenode { \n",
                 "  include cfn \n",
@@ -176,13 +175,20 @@
                 "owner" : "root",
                 "group" : "root"
               },
-              "/etc/puppet/manifests/site.pp" : {
+              "/etc/puppetlabs/puppet/manifests/site.pp" : {
                 "content" : "import \"nodes\"\n",
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               }
             },
+          },
+          "reducePuppetServerMemory": {
+            "commands": {
+              "set-puppetserver-memory": {
+                "command": ["sed", "-i", "s/JAVA_ARGS=.*/JAVA_ARGS='-Xms1g -Xmx1g -XX:MaxPermSize=256m'/", "/etc/default/puppetserver"]
+              }
+            }
           },
           "setPuppetServerHost": {
             "commands": {
