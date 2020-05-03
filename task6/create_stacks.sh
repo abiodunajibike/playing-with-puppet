@@ -13,13 +13,13 @@ echo "Creating bucket"
 response=$(aws s3api create-bucket --bucket $bucket_name --acl public-read)
 echo "Created bucket: $response"
 
-echo "Copying file init.pp"
-response=$(aws s3 cp ./task6/environments/production/modules/lamp/manifests/init.pp s3://$bucket_name/init.pp)
-echo "Copued file init.pp: $response"
-
-echo "Copying file site.pp"
-response=$(aws s3 cp ./task6/environments/production/manifests/site.pp s3://$bucket_name/site.pp)
-echo "Copued file site.pp: $response"
+echo "Copying file environments"
+cd task6/environments
+zip -r environments.zip production
+response=$(aws s3 cp environments.zip s3://$bucket_name --acl public-read)
+rm -rf environments.zip
+cd ../..
+echo "Copied file environments.zip: $response"
 
 puppet_master_stack_name=puppet-master-v2
 

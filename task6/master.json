@@ -30,13 +30,8 @@
       "Default": "puppet-test-key",
       "Type" : "String"
     },
-    "ContentManifest" : {
-      "Default" : "/wordpress/: { include wordpress }",
-      "Description" : "Manifest of roles to add to nodes.pp",
-      "Type" : "String"
-    },
     "ContentLocation" : {
-      "Default" : "https://s3.amazonaws.com/cloudformation-examples/wordpress-puppet-config.tar.gz",
+      "Default" : "https://s3.amazonaws.com/learning-puppet-config-12/environments.zip",
       "Description" : "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetMaster content",
       "Type" : "String"
     }
@@ -113,7 +108,7 @@
           },
           "configurePuppetServer" : {
             "sources" : {
-              "/etc/puppetlabs/puppet" : { "Ref" : "ContentLocation" }
+              "/etc/puppetlabs/code/environments": { "Ref" : "ContentLocation" }
             },
             "files" : {
               "/etc/yum.repos.d/epel.repo" : {
@@ -150,19 +145,7 @@
                   "owner" : "root",
                   "group" : "root"
                 },
-              "/etc/puppetlabs/code/environments/production/modules/lamp/manifests/init.pp" : {
-                "source" : "https://s3.amazonaws.com/learning-puppet-config-12/init.pp",
-                "mode" : "100644",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/etc/puppetlabs/code/environments/production/manifests/site.pp" : {
-                "source" : "https://s3.amazonaws.com/learning-puppet-config-12/site.pp",
-                "mode" : "100644",
-                "owner" : "root",
-                "group" : "root"
-              }
-            },
+            }
           },
           "reducePuppetServerMemory": {
             "commands": {
