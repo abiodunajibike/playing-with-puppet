@@ -113,12 +113,25 @@
             "Metadata" : {
                 "AWS::CloudFormation::Init" : {
                     "configSets": {
-                        "default": [ "installPackages", "configurePuppetAgent", "setPuppetMasterHost", "startPuppetAgent" ]
+                        "default": [ "enablePuppetLabRepo", "installPackages", "configurePuppetAgent", "setPuppetMasterHost", "startPuppetAgent" ]
                     },
+                    "enablePuppetLabRepo": {
+                        "commands": {
+                          "1-download-file": {
+                            "command": ["wget", "https://apt.puppetlabs.com/puppetlabs-release-pc1-xenial.deb", "-O", "/var/tmp/puppetlabs-release-pc1-xenial.deb"]
+                          },
+                          "2-enable-official-puppetlabs": {
+                            "command": ["dpkg", "-i", "/var/tmp/puppetlabs-release-pc1-xenial.deb"]
+                          },
+                          "3-apt-get-update": {
+                            "command": ["apt-get", "update", "-y"]
+                          }
+                        }
+                      },
                     "installPackages": {
                         "packages" : {
                             "apt" : {
-                                "puppet" : [],
+                                "puppet-agent" : [],
                                 "gcc" : [],
                                 "make" : [],
                                 "rubygems" : []
@@ -136,20 +149,11 @@
                                 "owner" : "root",
                                 "group" : "root"
                             },
-                            "/etc/puppet/puppet.conf" : {
+                            "/etc/puppetlabs/puppet/puppet.conf" : {
                                 "content" : {
                                     "Fn::Join" : ["", [
                                         "[main]\n",
-                                        " logdir=/var/log/puppet\n",
-                                        " rundir=/var/run/puppet\n",
-                                        " ssldir=$vardir/ssl\n",
-                                        " pluginsync=true\n",
-                                        " server=", { "Ref" : "PuppetMasterDNSName" },"\n",
-                                        "[master]\n",
-                                        " dns_alt_names=puppet\n",
-                                        "[agent]\n",
-                                        " classfile=$vardir/classes.txt\n",
-                                        " localconfig=$vardir/localconfig\n"
+                                        " runinterval=2m\n"
                                     ]]
                                 },
                                 "mode" : "000644",
@@ -158,24 +162,51 @@
                             }
                         }
                     },
+                    "backup": {
+                        "/etc/puppetlabs/puppet/puppet.conf" : {
+                            "content" : {
+                                "Fn::Join" : ["", [
+                                    "[main]\n",
+                                    " logdir=/var/log/puppet\n",
+                                    " rundir=/var/run/puppet\n",
+                                    " ssldir=$vardir/ssl\n",
+                                    " server=", { "Ref" : "PuppetMasterDNSName" },"\n",
+                                    "[master]\n",
+                                    " dns_alt_names=puppet\n",
+                                    "[agent]\n",
+                                    " classfile=$vardir/classes.txt\n",
+                                    " localconfig=$vardir/localconfig\n"
+                                ]]
+                            },
+                            "mode" : "000644",
+                            "owner" : "root",
+                            "group" : "root"
+                        }
+                    },
                     "setPuppetMasterHost": {
                         "commands": {
                             "1-set-system-hostname": {
                                 "command": { "Fn::Join" : [ " ", ["hostnamectl", "set-hostname", "puppet-agent.test.internal"] ] }
                             },
-                            "2-update-etc-hosts": {
+                            "2-set-agent-ip": {
+                                "command": { "Fn::Join" : [ " ", ["echo", "`curl http://169.254.169.254/latest/meta-data/local-ipv4`", "puppet-agent.test.internal", "| sudo tee -a /etc/hosts"] ] }
+                            },
+                            "3-update-etc-hosts": {
                                 "command": { "Fn::Join" : [ " ", ["echo", { "Ref" : "PuppetMasterPrivateIp" }, "puppet", "| sudo tee -a /etc/hosts"] ] }
                             },
-                            "3-set-hostname": {
+                            "4-set-hostname": {
                               "command": { "Fn::Join" : [ " ", ["echo",  { "Ref" : "PuppetMasterPrivateIp" } , "puppet-master.test.org", "| sudo tee -a /etc/hosts"] ] }
                             }
                         }
                     },
                     "startPuppetAgent": {
                         "commands": {
-                            "1-enable-agent": {
-                                "command": ["puppet", "agent", "--enable"]
-                            }
+                            "1-start-puppet-agent": {
+                              "command": [ "systemctl", "start", "puppet" ]
+                            },
+                            "2-enable-puppet-agent": {
+                              "command": [ "systemctl", "enable", "puppet" ]
+                            },
                         }
                     },
                 }
