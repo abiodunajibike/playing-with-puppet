@@ -162,27 +162,6 @@
                             }
                         }
                     },
-                    "backup": {
-                        "/etc/puppetlabs/puppet/puppet.conf" : {
-                            "content" : {
-                                "Fn::Join" : ["", [
-                                    "[main]\n",
-                                    " logdir=/var/log/puppet\n",
-                                    " rundir=/var/run/puppet\n",
-                                    " ssldir=$vardir/ssl\n",
-                                    " server=", { "Ref" : "PuppetMasterDNSName" },"\n",
-                                    "[master]\n",
-                                    " dns_alt_names=puppet\n",
-                                    "[agent]\n",
-                                    " classfile=$vardir/classes.txt\n",
-                                    " localconfig=$vardir/localconfig\n"
-                                ]]
-                            },
-                            "mode" : "000644",
-                            "owner" : "root",
-                            "group" : "root"
-                        }
-                    },
                     "setPuppetMasterHost": {
                         "commands": {
                             "1-set-system-hostname": {
