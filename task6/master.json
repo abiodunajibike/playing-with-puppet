@@ -30,8 +30,8 @@
       "Default": "puppet-test-key",
       "Type" : "String"
     },
-    "ContentLocation" : {
-      "Default" : "https://s3.amazonaws.com/learning-puppet-config-12/environments.zip",
+    "ConfigS3Bucket" : {
+      "Default" : "https://s3.amazonaws.com/learning-puppet-config-12",
       "Description" : "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetMaster content",
       "Type" : "String"
     }
@@ -108,43 +108,27 @@
           },
           "configurePuppetServer" : {
             "sources" : {
-              "/etc/puppetlabs/code/environments": { "Ref" : "ContentLocation" }
+              "/etc/puppetlabs/code/environments":  { "Fn::Join" : [ "/", [{ "Ref" : "ConfigS3Bucket" }, "environments.zip"] ] }
             },
             "files" : {
-              "/etc/yum.repos.d/epel.repo" : {
-                "source" : "https://s3.amazonaws.com/cloudformation-examples/enable-epel-on-amazon-linux-ami",
-                "mode" : "000644",
-                "owner" : "root",
-                "group" : "root"
-              },
               "/etc/puppetlabs/puppet/autosign.conf" : {
-                "content" : "*.internal\n",
+                "source" : { "Fn::Join" : [ "/", [{ "Ref" : "ConfigS3Bucket" }, "master/autosign.conf"] ] },
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
               "/etc/puppetlabs/puppet/fileserver.conf" : {
-                "content" : "[modules] \n allow *.internal \n",
+                "source" : { "Fn::Join" : [ "/", [{ "Ref" : "ConfigS3Bucket" }, "master/fileserver.conf"] ] },
                 "mode" : "100644",
                 "owner" : "root",
                 "group" : "root"
               },
               "/etc/puppetlabs/puppet/puppet.conf" : {
-                  "content" : { "Fn::Join" : ["", [
-                  "[main] \n",
-                  " vardir=/opt/puppetlabs/server/data/puppetserver\n",
-                  " logdir=/var/log/puppetlabs/puppetserver \n",
-                  " rundir=/var/run/puppetlabs/puppetserver \n",
-                  " pidfile=/var/run/puppetlabs/puppetserver/puppetserver.pid \n",
-                  " codedir=/etc/puppetlabs/code \n",
-                  " ssldir=$vardir/ssl \n",
-                  "[agent] \n",
-                  " classfile=$vardir/classes.txt\n",
-                  " localconfig=$vardir/localconfig\n"]] },
-                  "mode" : "000644",
-                  "owner" : "root",
-                  "group" : "root"
-                },
+                "source" : { "Fn::Join" : [ "/", [{ "Ref" : "ConfigS3Bucket" }, "master/puppet.conf"] ] },
+                "mode" : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
             }
           },
           "reducePuppetServerMemory": {

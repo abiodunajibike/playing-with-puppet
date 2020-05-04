@@ -21,6 +21,10 @@ rm -rf environments.zip
 cd ../..
 echo "Copied file environments.zip: $response"
 
+echo "Copying other files"
+response=$(aws s3 cp ./task6/config s3://$bucket_name --acl public-read --recursive)
+echo "Copied other files: $response"
+
 puppet_master_stack_name=puppet-master-v2
 
 echo "Creating stack: $puppet_master_stack_name"
