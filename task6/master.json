@@ -78,7 +78,53 @@
       "Metadata" : {
         "AWS::CloudFormation::Init" : {
           "configSets": {
-            "default": [ "enablePuppetLabRepo", "installPackages", "configurePuppetServer", "setPuppetServerHost", "reducePuppetServerMemory", "startPuppetServer" ]
+            "ConfigureInstance": [ "setupCfnHup", "enablePuppetLabRepo", "installPackages", "configurePuppetServer", "setPuppetServerHost", "reducePuppetServerMemory", "startPuppetServer" ],
+            "UpdateInstance": [ "setupCfnHup", "configurePuppetServer", "reducePuppetServerMemory" ]
+          },
+          "setupCfnHup": {
+            "files": {
+              "/etc/cfn/cfn-hup.conf" : {
+                "content" : {
+                  "Fn::Sub" : "[main]\n stack=${AWS::StackId}\n region=${AWS::Region}\n interval=1",
+                },
+                "mode" : "000400",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+                "content": { "Fn::Join" : ["", [
+                  "[cfn-auto-reloader-hook]\n",
+                  "triggers=post.update\n",
+                  "path=Resources.EC2Instance.Metadata.AWS::CloudFormation::Init\n",
+                  "action=/opt/aws/bin/cfn-init -v ",
+                  "         --stack ", { "Ref" : "AWS::StackName" },
+                  "         --resource PuppetMasterInstance ",
+                  "         --configsets UpdateInstance ",
+                  "         --region ", { "Ref" : "AWS::Region" }, "\n",
+                  "runas=root\n"
+                ]]}
+              },
+              "/lib/systemd/system/cfn-hup.service": {
+                "content": { "Fn::Join" : ["", [
+                  "[Unit]\n",
+                  "Description=cfn-hup daemon\n\n",
+                  "[Service]\n",
+                  "Type=simple\n",
+                  "ExecStart=/opt/aws/bin/cfn-hup\n", 
+                  "Restart=always\n\n",
+                  "[Install]\n",
+                  "WantedBy=multi-user.target"]]
+                }
+              }
+            },
+            "commands": {
+              "1-enable-cfn-hup": {
+                "command": ["systemctl", "enable", "cfn-hup.service"]
+              },
+              "2-start-cfn-hup": {
+                "command": ["systemctl", "start", "cfn-hup.service"]
+              }
+            }
           },
           "enablePuppetLabRepo": {
             "commands": {
@@ -179,7 +225,7 @@
             "Fn::Join" : ["", [
               "#!/bin/bash -xe\n",
               "apt-get update -y\n",
-              "apt-get -y install python-setuptools\n",
+              "apt-get -y install python-setuptools upstart \n",
               "mkdir -p /opt/aws/bin\n",
               "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
               "easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n",
@@ -188,7 +234,7 @@
               " --region ", { "Ref" : "AWS::Region" },
               " --stack ", { "Ref" : "AWS::StackName" },
               " --resource PuppetMasterInstance ",
-              " --configsets default ",
+              " --configsets ConfigureInstance ",
               " --access-key ", { "Ref" : "CFNKeys" },
               " --secret-key ", { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]}, "\n",
               "/opt/aws/bin/cfn-signal  -e $? '", { "Ref" : "PuppetMasterWaitHandle" }, "'\n"]
